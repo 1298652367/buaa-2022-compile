@@ -11,7 +11,7 @@ public class Compiler {
     //存储关键字和运算符
 
     //内部类
-    private class Token{
+    public class Token{
         public String value; //单词的值
         public String sym;//类别码
 
@@ -21,7 +21,7 @@ public class Compiler {
         }
 
         @Override
-        public String toString() {
+        public String toString()  {
             return this.sym+" "+this.value;
         }
     }
@@ -85,48 +85,68 @@ public class Compiler {
         // 构造一个临时数组存储预处理后的源程序
         ArrayList<Character> temp = new ArrayList<Character>();
         int count = 0;
+        boolean is_Normal = true; //当前内容不在一个字符串中
 
         // 逐个扫描源程序中的字符
         for (int i=0; i<source.size(); i++){
-            switch (source.get(i)){
-                //除单行注释
-                case '/':
-                    if (source.get(i + 1) == '/') {
-                        // 跳过单行注释
-                        i = i + 2;
-                        // 跳过这一行，直到遇到回车换行
-                        while (source.get(i) != '\n') {
-                            i++;
-                        }
-                    }
-                // 去除多行注释
-                    else if (source.get(i + 1) == '*') {
-                        // 跳过多行注释符号
-                        i = i + 2;
-                        // 当不满足匹配多行注释的时候，跳过
-                        while (!(source.get(i) == '*' && source.get(i + 1) == '/')) {
-                            i++;
-                            // 检查有没有到程序的末尾
-                            if (i >= source.size() - 2) {
-                                throw new IllegalArgumentException("源程序的注释不匹配!");
+            if(source.get(i).equals('"')){
+                is_Normal = false;
+            }
+            if(is_Normal) {
+                switch (source.get(i)) {
+                    //除单行注释
+                    case '/':
+                        if (source.get(i + 1) == '/') {
+                            // 跳过单行注释
+                            i = i + 2;
+                            // 跳过这一行，直到遇到回车换行
+                            while (source.get(i) != '\n') {
+                                i++;
                             }
                         }
-                        // 跳过多行注释符号
-                        i = i + 2;
-                    }
-                     else{
+                        // 去除多行注释
+                        else if (source.get(i + 1) == '*') {
+                            // 跳过多行注释符号
+                            i = i + 2;
+                            // 当不满足匹配多行注释的时候，跳过
+                            while (!(source.get(i) == '*' && source.get(i + 1) == '/')) {
+                                i++;
+                                // 检查有没有到程序的末尾
+                                if (i >= source.size() - 2) {
+                                    throw new IllegalArgumentException("源程序的注释不匹配!");
+                                }
+                            }
+                            // 跳过多行注释符号
+                            i = i + 1;
+                        } else {
+                            temp.add(source.get(i));
+                            count++;
+                        }
+                        break;
+                    case '\n':
+                    case '\t':
+                    case '\r':
+                        temp.add(' ');
+                        count++;
+                        break;
+                    default:
                         temp.add(source.get(i));
                         count++;
-                    }
-                    break;
-                case '\n':
-                case '\t':
-                case '\r':
-                    break;
-                default:
+                        break;
+                }
+            }
+            else {
+                temp.add(source.get(i));
+                count++;
+                i++;
+                while( i < source.size() && !source.get(i).equals('"')) {
                     temp.add(source.get(i));
                     count++;
-                    break;
+                    i++;
+                }
+                temp.add(source.get(i));
+                count++;
+                is_Normal = true;
             }
         }
         // 设置源程序的长度为count
@@ -148,14 +168,17 @@ public class Compiler {
         int index2 = 0;
 
         // 除去单词前的空格
-        while (code.get(index1) == ' '){
+        while (index1<code.size() && code.get(index1) == ' ' ){
             index1++;
+            // 越界直接返回
+            if(index1==code.size()) return null;
         }
 
-        // 如果单词的首字符为字母
-        if (Character.isLetter(code.get(index1))){
-            // 当后续为字母或数字时存入
-            while (Character.isLetter(code.get(index1)) || Character.isDigit(code.get(index1))){
+
+        // 如果单词的首字符为字母或者下划线
+        if (Character.isLetter(code.get(index1)) || code.get(index1).equals('_')){
+            // 当后续为字母,数字或下划线时存入
+            while (Character.isLetter(code.get(index1)) || Character.isDigit(code.get(index1)) || code.get(index1).equals('_')){
                 token[index2++] = code.get(index1++);
             }
             // 在map中查找，如果能查找到说明是保留字
@@ -250,7 +273,6 @@ public class Compiler {
 
     }
 
-
     public static void main(String[] args) throws IOException {
         ArrayList<Character> source = new ArrayList<Character>();
         char[] s= new char[1000005];
@@ -284,10 +306,13 @@ public class Compiler {
             writer.write(ans);
             writer.newLine();
             tempToken = cp.scanner(source, cp.getBegin());
+            if(tempToken==null) break;
         }
-        String ans = new String();
-        ans=tempToken.toString();
-        writer.write(ans);
+        if(!(tempToken==null)) {
+            String ans = new String();
+            ans = tempToken.toString();
+            writer.write(ans);
+        }
 
         writer.flush();
         writer.close();
