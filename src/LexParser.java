@@ -7,50 +7,9 @@ import java.util.Map;
 public class LexParser {
     private int length; //预处理后的程序长度
     private int begin;//扫描后的起始位置
-    Map<String,String> keyWord;
-    //存储关键字和运算符
-    public LexParser(){
-        keyWord=new HashMap<>();
-        keyWord.put("Ident","IDENFR");
-        keyWord.put("IntConst","INTCON");
-        keyWord.put("FormatString","STRCON");
-        keyWord.put("main","MAINTK");
-        keyWord.put("const","CONSTTK");
-        keyWord.put("int","INTTK");
-        keyWord.put("break","BREAKTK");
-        keyWord.put("continue","CONTINUETK");
-        keyWord.put("if","IFTK");
-        keyWord.put("else","ELSETK");
-        keyWord.put("!","NOT");
-        keyWord.put("&&","AND");
-        keyWord.put("||","OR");
-        keyWord.put("while","WHILETK");
-        keyWord.put("getint","GETINTTK");
-        keyWord.put("printf","PRINTFTK");
-        keyWord.put("return","RETURNTK");
-        keyWord.put("+","PLUS");
-        keyWord.put("-","MINU");
-        keyWord.put("void","VOIDTK");
-        keyWord.put("*","MULT");
-        keyWord.put("/","DIV");
-        keyWord.put("%","MOD");
-        keyWord.put("<","LSS");
-        keyWord.put("<=","LEQ");
-        keyWord.put(">","GRE");
-        keyWord.put(">=","GEQ");
-        keyWord.put("==","EQL");
-        keyWord.put("!=","NEQ");
-        keyWord.put("=","ASSIGN");
-        keyWord.put(";","SEMICN");
-        keyWord.put(",","COMMA");
-        keyWord.put("(","LPARENT");
-        keyWord.put(")","RPARENT");
-        keyWord.put("[","LBRACK");
-        keyWord.put("]","RBRACK");
-        keyWord.put("{","LBRACE");
-        keyWord.put("}","RBRACE");
-    }
+    private ArrayList<Token> tokens = new ArrayList<>();
 
+    keywords keywords = new keywords();
     public int getLength(){
         return this.length;
     }
@@ -168,7 +127,7 @@ public class LexParser {
             // 否则说明是标识符
             // 每次返回都要维护下index1
             this.setBegin(index1);
-            for(Map.Entry<String,String> entry:keyWord.entrySet()){
+            for(Map.Entry<String,String> entry: keywords.keyWord.entrySet()){
                 //是保留字
                 if(String.valueOf(token).trim().equals(entry.getKey())){
                     return new Token(String.valueOf(token).trim(),entry.getValue());
@@ -198,42 +157,42 @@ public class LexParser {
                 case '!':
                     if(code.get(index1 + 1) =='='){
                         this.setBegin(index1+2);
-                        return new Token("!=",this.keyWord.get("!="));
+                        return new Token("!=",this.keywords.keyWord.get("!="));
                     }else{
                         this.setBegin(index1+1);
-                        return new Token("!",this.keyWord.get("!"));
+                        return new Token("!",this.keywords.keyWord.get("!"));
                     }
 
                 case '<':
                     if (code.get(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token("<=", this.keyWord.get("<="));
+                        return new Token("<=", this.keywords.keyWord.get("<="));
                     } else{
                         this.setBegin(index1+1);
-                        return new Token("<", this.keyWord.get("<"));
+                        return new Token("<", this.keywords.keyWord.get("<"));
                     }
                 case '>':
                     if (code.get(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token(">=", this.keyWord.get(">="));
+                        return new Token(">=", this.keywords.keyWord.get(">="));
                     } else{
                         this.setBegin(index1+1);
-                        return new Token(">", this.keyWord.get(">"));
+                        return new Token(">", this.keywords.keyWord.get(">"));
                     }
                 case '=':
                     if (code.get(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token("==", this.keyWord.get("=="));
+                        return new Token("==", this.keywords.keyWord.get("=="));
                     } else {
                         this.setBegin(index1 + 1);
-                        return new Token("=", this.keyWord.get("="));
+                        return new Token("=", this.keywords.keyWord.get("="));
                     }
                 case '&':
                     this.setBegin(index1+2);
-                    return new Token("&&", this.keyWord.get("&&"));
+                    return new Token("&&", this.keywords.keyWord.get("&&"));
                 case '|':
                     this.setBegin(index1+2);
-                    return new Token("||", this.keyWord.get("||"));
+                    return new Token("||", this.keywords.keyWord.get("||"));
                 case '+':
                 case '-':
                 case '*':
@@ -248,7 +207,7 @@ public class LexParser {
                 case '{':
                 case '}':
                     this.setBegin(index1+1);
-                    return new Token(String.valueOf(code.get(index1)), this.keyWord.get(String.valueOf(code.get(index1))));
+                    return new Token(String.valueOf(code.get(index1)), this.keywords.keyWord.get(String.valueOf(code.get(index1))));
                 default:
                     return new Token("noneType", null);
             }
@@ -256,22 +215,25 @@ public class LexParser {
 
     }
 
-    // 词法分析输出接口
-    public void print(BufferedWriter writer,ArrayList<Character> source) throws IOException {
-
+    // 制作单词表
+    public void makeTokens(ArrayList<Character> source){
         Token tempToken = scanner(source, 0);
         while (getBegin() < getLength()){
-            String ans = new String();
-            ans=tempToken.toString();
-            writer.write(ans);
-            writer.newLine();
+            tokens.add(tempToken);
             tempToken = scanner(source, getBegin());
             if(tempToken==null) break;
         }
         if(!(tempToken==null)) {
-            String ans = new String();
-            ans = tempToken.toString();
+            tokens.add(tempToken);
+        }
+    }
+
+    // 词法分析输出
+    public void print(BufferedWriter writer) throws IOException {
+        for(Token token:tokens){
+            String ans = token.toString();
             writer.write(ans);
+            writer.newLine();
         }
     }
 

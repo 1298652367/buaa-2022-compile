@@ -10,7 +10,7 @@ public class Compiler {
         char[] s= new char[1000005];
         LexParser lp = new LexParser();
 
-        try(BufferedReader reader = new BufferedReader(new FileReader("./testfile.txt"));){
+        try(BufferedReader reader = new BufferedReader(new FileReader("./src/testfile.txt"));){
             // 读入源程序
             reader.read(s);
             int index = 0;
@@ -27,10 +27,11 @@ public class Compiler {
             e.printStackTrace();
         }
 
-        FileWriter write = new FileWriter("./output.txt");
+        FileWriter write = new FileWriter("./src/output.txt");
         BufferedWriter writer = new BufferedWriter(write);
 
-        lp.print(writer,source);
+        lp.makeTokens(source);
+        lp.print(writer);
 
         writer.flush();
         writer.close();
