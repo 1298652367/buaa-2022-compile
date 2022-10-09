@@ -237,6 +237,8 @@ public class LexParser {
         }
     }
 
-
+    public ArrayList<Token> getTokens(){
+        return tokens;
+    }
 
 }

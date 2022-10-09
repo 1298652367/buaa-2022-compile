@@ -15,6 +15,9 @@ public class Token {
     public boolean typeEquals(String str) {
         return type.equals(str);
     }
+    public boolean valueEquals(String str) {
+        return value.equals(str);
+    }
 
     public boolean typeSymbolizeStmt() {
         return type.equals("IDENFR")
@@ -28,6 +31,14 @@ public class Token {
                 || type.equals("PRINTFTK")
                 || type.equals("SEMICN")
                 || typeSymbolizeBeginOfExp();
+    }
+    public boolean typeSymbolizeExp() {
+        return type.equals("LPARENT")
+                || type.equals("IDENFR")
+                || type.equals("INTCON")
+                || type.equals("NOT")
+                || type.equals("PLUS")
+                || type.equals("MINU");
     }
 
     public boolean typeSymbolizeValidateStmt() {
