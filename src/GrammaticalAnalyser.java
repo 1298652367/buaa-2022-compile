@@ -11,6 +11,8 @@ public class GrammaticalAnalyser {
     private Token nowToken;
     private ArrayList<String> grammar;
 
+    private ArrayList<String> errors = new ArrayList<>();
+
     public GrammaticalAnalyser(ArrayList<Token> tokens) {
         this.tokens = tokens;
         grammar = new ArrayList<>();
@@ -623,6 +625,13 @@ public class GrammaticalAnalyser {
     // 输出语法分析结果
     public void print(BufferedWriter writer) throws IOException {
         for (String str : grammar) {
+            writer.write(str + "\n");
+        }
+    }
+
+    // 输出错误处理结果
+    public void printError(BufferedWriter writer) throws IOException{
+        for(String str : errors){
             writer.write(str + "\n");
         }
     }

@@ -1,10 +1,22 @@
 public class Token {
     public String value; //单词的值
     public String type;//类别码
+    public int lineNum;// 行数
+    public int flag=1;
 
     public Token(String value,String type){
         this.value=value;
         this.type=type;
+    }
+
+    public Token(String value,String type,int lineNum){
+        this.value=value;
+        this.type=type;
+        this.lineNum=lineNum;
+    }
+
+    public Token(int a){
+        this.flag=a;
     }
 
     @Override

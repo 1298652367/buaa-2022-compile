@@ -6,36 +6,28 @@ import java.util.Map;
 
 public class Compiler {
     public static void main(String[] args) throws IOException {
-        ArrayList<Character> source = new ArrayList<Character>();
-        char[] s= new char[1000005];
-        LexParser lp = new LexParser();
+        String source = new String();
+        FileReader read = new FileReader("./src/testfile.txt");
+        BufferedReader reader = new BufferedReader(read);
 
-        try(BufferedReader reader = new BufferedReader(new FileReader("./testfile.txt"));){
-            // 读入源程序
-            reader.read(s);
-            int index = 0;
-            while(s[index]!='\u0000'){
-                source.add(s[index]);
-                index++;
-            }
-            int a = source.size();
-            // 对源程序做预处理
-           source = lp.preProcess(source);
-            // 开始识别单词
-
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-
-        FileWriter write = new FileWriter("./output.txt");
+        FileWriter write = new FileWriter("./src/output.txt");
         BufferedWriter writer = new BufferedWriter(write);
 
-        lp.makeTokens(source);
+        FileWriter writeError = new FileWriter("./src/error.txt");
+        BufferedWriter writerError = new BufferedWriter(writeError);
 
+        fileProcess fp = new fileProcess(reader); //预处理
+
+        source = fp.getCode();
+        LexParser lp = new LexParser(source); //词法分析
+        lp.makeTokens();
         ArrayList<Token> a = lp.getTokens();
-        GrammaticalAnalyser ga = new GrammaticalAnalyser(lp.getTokens());
-        ga.print(writer);
-//        lp.print(writer);
+        GrammaticalAnalyser ga = new GrammaticalAnalyser(lp.getTokens());//语法分析
+
+//             lp.print(writer); //词法分析输出
+        ga.print(writer); // 语法分析输出
+        ga.printError(writerError); //错误处理输出
+
 
         writer.flush();
         writer.close();

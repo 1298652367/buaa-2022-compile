@@ -2,16 +2,21 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class LexParser {
-    private int length; //预处理后的程序长度
+    private String code;
+    private int lineNum = 1;
+
     private int begin;//扫描后的起始位置
     private ArrayList<Token> tokens = new ArrayList<>();
 
     keywords keywords = new keywords();
-    public int getLength(){
-        return this.length;
+    boolean is_Normal = true; //当前内容不在字符串之中
+
+    public LexParser(String code){
+        this.code = code;
     }
 
     public int getBegin() {
@@ -22,83 +27,8 @@ public class LexParser {
         this.begin = begin;
     }
 
-    // 首先，对输入源程序做预处理，处理掉注释、换行符、制表符等等
-    public ArrayList<Character> preProcess(ArrayList<Character> source) throws IllegalArgumentException{
-        // 构造一个临时数组存储预处理后的源程序
-        ArrayList<Character> temp = new ArrayList<Character>();
-        int count = 0;
-        boolean is_Normal = true; //当前内容不在一个字符串中
-
-        // 逐个扫描源程序中的字符
-        for (int i=0; i<source.size(); i++){
-            if(source.get(i).equals('"')){
-                is_Normal = false;
-            }
-            if(is_Normal) {
-                switch (source.get(i)) {
-                    //除单行注释
-                    case '/':
-                        if (source.get(i + 1) == '/') {
-                            // 跳过单行注释
-                            i = i + 2;
-                            // 跳过这一行，直到遇到回车换行
-                            while (source.get(i) != '\n') {
-                                i++;
-                            }
-                        }
-                        // 去除多行注释
-                        else if (source.get(i + 1) == '*') {
-                            // 跳过多行注释符号
-                            i = i + 2;
-                            // 当不满足匹配多行注释的时候，跳过
-                            while (!(source.get(i) == '*' && source.get(i + 1) == '/')) {
-                                i++;
-                                // 检查有没有到程序的末尾
-                                if (i >= source.size() - 2) {
-                                    throw new IllegalArgumentException("源程序的注释不匹配!");
-                                }
-                            }
-                            // 跳过多行注释符号
-                            i = i + 1;
-                        } else {
-                            temp.add(source.get(i));
-                            count++;
-                        }
-                        break;
-                    case '\n':
-                    case '\t':
-                    case '\r':
-                        temp.add(' ');
-                        count++;
-                        break;
-                    default:
-                        temp.add(source.get(i));
-                        count++;
-                        break;
-                }
-            }
-            else {
-                temp.add(source.get(i));
-                count++;
-                i++;
-                while( i < source.size() && !source.get(i).equals('"')) {
-                    temp.add(source.get(i));
-                    count++;
-                    i++;
-                }
-                temp.add(source.get(i));
-                count++;
-                is_Normal = true;
-            }
-        }
-        // 设置源程序的长度为count
-        this.length = count;
-        return temp;
-    }
-
     // 识别单词符号
-    public Token scanner(ArrayList<Character> code, int begin){
-        // 我们知道，要识别的PL/0语言中的单词符号有这几个类别：
+    public Token scanner(String code, int begin){
         // 保留字、标识符、常数、运算符和界符
         // 可以进一步粗分为3类，字母开头（保留字和标识符）数字开头（常数）其他
 
@@ -108,95 +38,124 @@ public class LexParser {
         int index1 = begin;
         // 指向存储单词的数组的索引
         int index2 = 0;
-
-        // 除去单词前的空格
-        while (index1<code.size() && code.get(index1) == ' ' ){
+        while (index1<code.length() && (code.charAt(index1) == '\n')){
+            lineNum++;
+            index1++;
+            if(index1==code.length()) return null;
+        }
+        // 除去单词前的空格,制表符，等
+        while (index1<code.length() && (code.charAt(index1) == ' ' || (code.charAt(index1)=='\t')||(code.charAt(index1)=='\r'))){
             index1++;
             // 越界直接返回
-            if(index1==code.size()) return null;
+            if(index1==code.length()) return null;
         }
-
-
+        // 处理注释
+        if (code.charAt(index1)=='/'){
+            if(code.charAt(index1+1)=='/') { // 单行注释
+                index1+=2;
+                while (code.charAt(index1)!='\n'){
+                    index1++;
+                }
+                this.setBegin(index1);
+                return new Token(0);
+            }else if(code.charAt(index1+1)=='*'){ //多行注释
+                index1+=2;
+                // 当不满足匹配多行注释的时候，跳过
+                while (!(code.charAt(index1) == '*' && code.charAt(index1+1)== '/')) {
+                    if(code.charAt(index1)=='\n') lineNum++;
+                    index1++;
+                    // 检查有没有到程序的末尾
+                    if (index1 >= code.length() - 2) {
+                        throw new IllegalArgumentException("源程序的注释不匹配!");
+                    }
+                }
+                // 跳过多行注释符号
+                index1+=2;
+                this.setBegin(index1);
+                return new Token(0);
+            }
+        }
         // 如果单词的首字符为字母或者下划线
-        if (Character.isLetter(code.get(index1)) || code.get(index1).equals('_')){
+        if (Character.isLetter(code.charAt(index1)) || code.charAt(index1)=='_'){
             // 当后续为字母,数字或下划线时存入
-            while (Character.isLetter(code.get(index1)) || Character.isDigit(code.get(index1)) || code.get(index1).equals('_')){
-                token[index2++] = code.get(index1++);
+            while (Character.isLetter(code.charAt(index1)) || Character.isDigit(code.charAt(index1)) || code.charAt(index1)=='_'){
+                token[index2++] = code.charAt(index1++);
             }
             // 在map中查找，如果能查找到说明是保留字
             // 否则说明是标识符
             // 每次返回都要维护下index1
             this.setBegin(index1);
-            for(Map.Entry<String,String> entry: keywords.keyWord.entrySet()){
-                //是保留字
-                if(String.valueOf(token).trim().equals(entry.getKey())){
-                    return new Token(String.valueOf(token).trim(),entry.getValue());
+            //是保留字
+            for(Map.Entry<String,String> entry: keywords.keyWord.entrySet()) {
+                String s = String.valueOf(token).trim().toLowerCase();
+                if (s.equals(entry.getKey())) {
+                    return new Token(s, entry.getValue(),lineNum);
                 }
             }
             //是标识符
-            return new Token(String.valueOf(token).trim(),"IDENFR");
+            return new Token(String.valueOf(token).trim(),"IDENFR",lineNum);
 
-        } else if (Character.isDigit(code.get(index1))){
+        } else if (Character.isDigit(code.charAt(index1))){
             // 如果首字符是数字
-            while (Character.isDigit(code.get(index1))){
-                token[index2++] = code.get(index1++);
+            while (Character.isDigit(code.charAt(index1))){
+                token[index2++] = code.charAt(index1++);
             }
             this.setBegin(index1);
-            return new Token(String.valueOf(token).trim(), "INTCON");
-        } else if(code.get(index1).equals('"')){
+            return new Token(String.valueOf(token).trim(), "INTCON",lineNum);
+        } else if(code.charAt(index1)=='"'){
             //是字符串
-            token[index2++] = code.get(index1++);
-            while (!code.get(index1).equals('"')){
-                token[index2++] = code.get(index1++);
+            token[index2++] = code.charAt(index1++);
+            while (!(code.charAt(index1)=='"')){
+                token[index2++] = code.charAt(index1++);
             }
-            token[index2++] = code.get(index1++);
+            token[index2++] = code.charAt(index1++);
             this.setBegin(index1);
-            return new Token(String.valueOf(token).trim(), "STRCON");
+            return new Token(String.valueOf(token).trim(), "STRCON",lineNum);
         }else{
-            switch (code.get(index1)){
+            switch (code.charAt(index1)){
                 case '!':
-                    if(code.get(index1 + 1) =='='){
+                    if(code.charAt(index1 + 1) =='='){
                         this.setBegin(index1+2);
-                        return new Token("!=",this.keywords.keyWord.get("!="));
+                        return new Token("!=",this.keywords.keyWord.get("!="),lineNum);
                     }else{
                         this.setBegin(index1+1);
-                        return new Token("!",this.keywords.keyWord.get("!"));
+                        return new Token("!",this.keywords.keyWord.get("!"),lineNum);
                     }
 
                 case '<':
-                    if (code.get(index1 + 1) == '='){
+                    if (code.charAt(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token("<=", this.keywords.keyWord.get("<="));
+                        return new Token("<=", this.keywords.keyWord.get("<="),lineNum);
                     } else{
                         this.setBegin(index1+1);
-                        return new Token("<", this.keywords.keyWord.get("<"));
+                        return new Token("<", this.keywords.keyWord.get("<"),lineNum);
                     }
                 case '>':
-                    if (code.get(index1 + 1) == '='){
+                    if (code.charAt(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token(">=", this.keywords.keyWord.get(">="));
+                        return new Token(">=", this.keywords.keyWord.get(">="),lineNum);
                     } else{
                         this.setBegin(index1+1);
-                        return new Token(">", this.keywords.keyWord.get(">"));
+                        return new Token(">", this.keywords.keyWord.get(">"),lineNum);
                     }
                 case '=':
-                    if (code.get(index1 + 1) == '='){
+                    if (code.charAt(index1 + 1) == '='){
                         this.setBegin(index1+2);
-                        return new Token("==", this.keywords.keyWord.get("=="));
+                        return new Token("==", this.keywords.keyWord.get("=="),lineNum);
                     } else {
                         this.setBegin(index1 + 1);
-                        return new Token("=", this.keywords.keyWord.get("="));
+                        return new Token("=", this.keywords.keyWord.get("="),lineNum);
                     }
                 case '&':
                     this.setBegin(index1+2);
-                    return new Token("&&", this.keywords.keyWord.get("&&"));
+                    return new Token("&&", this.keywords.keyWord.get("&&"),lineNum);
                 case '|':
                     this.setBegin(index1+2);
-                    return new Token("||", this.keywords.keyWord.get("||"));
+                    return new Token("||", this.keywords.keyWord.get("||"),lineNum);
+                case '/':
                 case '+':
                 case '-':
                 case '*':
-                case '/':
                 case '%':
                 case ',':
                 case ';':
@@ -207,7 +166,7 @@ public class LexParser {
                 case '{':
                 case '}':
                     this.setBegin(index1+1);
-                    return new Token(String.valueOf(code.get(index1)), this.keywords.keyWord.get(String.valueOf(code.get(index1))));
+                    return new Token(String.valueOf(code.charAt(index1)), this.keywords.keyWord.get(String.valueOf(code.charAt(index1))),lineNum);
                 default:
                     return new Token("noneType", null);
             }
@@ -215,12 +174,14 @@ public class LexParser {
 
     }
 
+
+
     // 制作单词表
-    public void makeTokens(ArrayList<Character> source){
-        Token tempToken = scanner(source, 0);
-        while (getBegin() < getLength()){
-            tokens.add(tempToken);
-            tempToken = scanner(source, getBegin());
+    public void makeTokens(){
+        Token tempToken = scanner(code, 0);
+        while (getBegin() < code.length()){
+            if(tempToken.flag!=0)  tokens.add(tempToken);
+            tempToken = scanner(code, getBegin());
             if(tempToken==null) break;
         }
         if(!(tempToken==null)) {
