@@ -7,13 +7,13 @@ import java.util.Map;
 public class Compiler {
     public static void main(String[] args) throws IOException {
         String source = new String();
-        FileReader read = new FileReader("./src/testfile.txt");
+        FileReader read = new FileReader("./testfile.txt");
         BufferedReader reader = new BufferedReader(read);
 
-        FileWriter write = new FileWriter("./src/output.txt");
+        FileWriter write = new FileWriter("./output.txt");
         BufferedWriter writer = new BufferedWriter(write);
 
-        FileWriter writeError = new FileWriter("./src/error.txt");
+        FileWriter writeError = new FileWriter("./error.txt");
         BufferedWriter writerError = new BufferedWriter(writeError);
 
         fileProcess fp = new fileProcess(reader); //预处理

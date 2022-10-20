@@ -38,13 +38,10 @@ public class LexParser {
         int index1 = begin;
         // 指向存储单词的数组的索引
         int index2 = 0;
-        while (index1<code.length() && (code.charAt(index1) == '\n')){
-            lineNum++;
-            index1++;
-            if(index1==code.length()) return null;
-        }
         // 除去单词前的空格,制表符，等
-        while (index1<code.length() && (code.charAt(index1) == ' ' || (code.charAt(index1)=='\t')||(code.charAt(index1)=='\r'))){
+        while (index1<code.length() &&
+                (code.charAt(index1) == ' ' || (code.charAt(index1)=='\t')||(code.charAt(index1)=='\r')||(code.charAt(index1) == '\n'))){
+            if(code.charAt(index1) == '\n') lineNum++;
             index1++;
             // 越界直接返回
             if(index1==code.length()) return null;
@@ -174,12 +171,11 @@ public class LexParser {
 
     }
 
-
-
     // 制作单词表
     public void makeTokens(){
         Token tempToken = scanner(code, 0);
         while (getBegin() < code.length()){
+//            System.out.println(code.charAt(getBegin()));
             if(tempToken.flag!=0)  tokens.add(tempToken);
             tempToken = scanner(code, getBegin());
             if(tempToken==null) break;
