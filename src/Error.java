@@ -11,4 +11,8 @@ public class Error {
     public String toString() {
         return n + " " + type;
     }
+
+    public int getN(){
+        return this.n;
+    }
 }

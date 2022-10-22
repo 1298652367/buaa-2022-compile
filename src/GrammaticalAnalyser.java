@@ -1,9 +1,8 @@
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class GrammaticalAnalyser {
     private ArrayList<Token> tokens;
@@ -11,7 +10,7 @@ public class GrammaticalAnalyser {
     private Token nowToken;
     private ArrayList<String> grammar;
 
-    private ArrayList<String> errors = new ArrayList<>();
+    private ArrayList<Error> errors = new ArrayList<Error>();
 
     public GrammaticalAnalyser(ArrayList<Token> tokens) {
         this.tokens = tokens;
@@ -631,7 +630,13 @@ public class GrammaticalAnalyser {
 
     // 输出错误处理结果
     public void printError(BufferedWriter writer) throws IOException{
-        for(String str : errors){
+        errors.sort(new Comparator<Error>() {
+            @Override
+            public int compare(Error e1,Error e2) {
+                return e1.getN()- e2.getN();
+            }
+        });
+        for(Error str : errors){
             writer.write(str + "\n");
         }
     }

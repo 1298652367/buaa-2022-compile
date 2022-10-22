@@ -6,7 +6,7 @@ int main() {
         if (m_v_num * m_c_num1 == m_c_num1 + if_v_num3 * 1) {
             non_param_func();
         }
-        
+
     }
 
 
