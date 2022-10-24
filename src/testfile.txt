@@ -1,14 +1,4 @@
 int main() {
-
-    if (/*Cond*/1) {
-        int if_v_num3 = m_v_num2 + 1;
-        m_v_num = two_param_func(m_c_num1, if_v_num3);
-        if (m_v_num * m_c_num1 == m_c_num1 + if_v_num3 * 1) {
-            non_param_func();
-        }
-
-    }
-
-
+    printf("%d", 1, 1);
     return 0;
 }

@@ -19,6 +19,11 @@ public class Token {
         this.flag=a;
     }
 
+    public Token(String value, int lineNum) {
+        this.value = value;
+        this.lineNum = lineNum;
+    }
+
     @Override
     public String toString()  {
         return this.type+" "+this.value;
@@ -91,6 +96,51 @@ public class Token {
                 || type.equals("PRINTFTK")
                 || type.equals("RETURNTK");
     }
+
+
+    public String getType() {
+        return this.type;
+    }
+
+    public String getValue() {
+        return this.value;
+    }
+
+    public int getLineNum() {
+        return this.lineNum;
+    }
+    public int getFormatNum(){
+        int n=0;
+        for(int i=0;i<value.length();i++){
+            if(i+1<value.length()){
+                if(value.charAt(i)=='%' && value.charAt(i+1)=='d'){
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+    public boolean isFormatIllegal(){
+        for(int i=1;i<value.length()-1;i++){
+            char c = value.charAt(i);
+            if(!isIllagal(c)){
+                if(c=='%'&& value.charAt(i+1)=='d'){
+                    continue;
+                }
+                return true;
+            }else{
+                if(c=='\\'&& value.charAt(i+1)!='n' )
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isIllagal(char c){
+        return c==32 || c==33|| (c>=40&&c<=126);
+    }
+
+
 
 
 }
