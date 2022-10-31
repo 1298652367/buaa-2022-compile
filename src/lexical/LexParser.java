@@ -1,9 +1,12 @@
+package lexical;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import data.*;
 
 public class LexParser {
     private String code;

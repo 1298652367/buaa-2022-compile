@@ -1,5 +1,6 @@
+package error;
 import java.util.ArrayList;
-
+import data.*;
 public class Function {
     private String type;
     private String content;

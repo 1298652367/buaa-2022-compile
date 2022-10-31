@@ -1,3 +1,4 @@
+package error;
 public class Error {
     private int n;
     private String type;

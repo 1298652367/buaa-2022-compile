@@ -1,5 +1,7 @@
+package syntax;
 import java.util.ArrayList;
 
+import data.*;
 public class Exps {
     private ArrayList<ArrayList<Token>> tokens;
     private ArrayList<Token> symbols;

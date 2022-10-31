@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import data.*;
+import error.*;
+import lexical.*;
+import syntax.*;
+
 public class Compiler {
     public static void main(String[] args) throws IOException {
         String source = new String();
@@ -23,10 +28,10 @@ public class Compiler {
         lp.makeTokens();
         ArrayList<Token> a = lp.getTokens();
         GrammaticalAnalyser ga = new GrammaticalAnalyser(lp.getTokens());//语法分析
-
+//        SynAndError sae = new SynAndError(lp.getTokens());
 //             lp.print(writer); //词法分析输出
-        ga.printError(writerError); //错误处理输出
-//        ga.print(writer); // 语法分析输出
+//        sae.printError(writerError); //错误处理输出
+        ga.print(writer); // 语法分析输出
 
     }
 }

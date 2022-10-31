@@ -1,8 +1,10 @@
+package data;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class keywords {
-    Map<String,String> keyWord;
+    public Map<String,String> keyWord;
     //存储关键字和运算符
     public keywords(){
         keyWord=new HashMap<>();

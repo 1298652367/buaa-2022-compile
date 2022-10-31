@@ -1,3 +1,4 @@
+package error;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -5,7 +6,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
-public class GrammaticalAnalyser {
+import data.*;
+import lexical.*;
+import syntax.*;
+public class SynAndError {
     private ArrayList<Token> tokens;
     private int index = 0;
     private Token nowToken;
@@ -18,7 +22,7 @@ public class GrammaticalAnalyser {
     private int whileFlag = 0;
     private int area = -1;     //错误处理符号表结构
 
-    public GrammaticalAnalyser(ArrayList<Token> tokens) {
+    public SynAndError(ArrayList<Token> tokens) {
         this.tokens = tokens;
         grammar = new ArrayList<>();
         ComUnit();

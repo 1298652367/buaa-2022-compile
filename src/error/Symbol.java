@@ -1,3 +1,5 @@
+package error;
+import data.*;
 public class Symbol {
     private String type;
     private int intType;

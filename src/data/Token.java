@@ -1,3 +1,4 @@
+package data;
 public class Token {
     public String value; //单词的值
     public String type;//类别码
