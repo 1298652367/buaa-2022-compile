@@ -4,12 +4,15 @@ import java.util.ArrayList;
 
 public class AstNode {
     private String value = "";
+    ArrayList<AstNode> childs = new ArrayList<>();
     private String type = "";
 
     private String quality="";
 
     private int regID = 0;
     private int area = 0;
+
+    boolean inStack=true;
 
     public void setRegID(int regID) {
         this.regID = regID;
@@ -39,7 +42,7 @@ public class AstNode {
         return value;
     }
 
-    ArrayList<AstNode> childs = new ArrayList<>();
+
     AstNode fatherNode = null;
 
     public AstNode(String value){
@@ -69,5 +72,13 @@ public class AstNode {
 
     public int getRegID() {
         return regID;
+    }
+
+    public boolean isInStack() {
+        return inStack;
+    }
+
+    public void setInStack(boolean inStack) {
+        this.inStack = inStack;
     }
 }

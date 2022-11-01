@@ -4,9 +4,56 @@ LPARENT (
 RPARENT )
 LBRACE {
 RETURNTK return
-INTCON 20373059
+INTCON 1
 <Number>
 <PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+PLUS +
+MINU -
+<UnaryOp>
+PLUS +
+<UnaryOp>
+LPARENT (
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+MINU -
+<UnaryOp>
+INTCON 1
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+RPARENT )
+<PrimaryExp>
+<UnaryExp>
+<UnaryExp>
 <UnaryExp>
 <MulExp>
 <AddExp>
