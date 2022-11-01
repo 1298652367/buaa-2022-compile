@@ -17,6 +17,9 @@ public class GrammaticalAnalyser {
 
     AstNode RootAst = new AstNode("<CompUnit>");
 
+    public AstNode getRootAst(){
+        return this.RootAst;
+    }
 
     public GrammaticalAnalyser(ArrayList<Token> tokens) {
         this.tokens = tokens;

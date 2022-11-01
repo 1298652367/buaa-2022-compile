@@ -87,7 +87,7 @@ public class LexParser {
             this.setBegin(index1);
             //是保留字
             for(Map.Entry<String,String> entry: keywords.keyWord.entrySet()) {
-                String s = String.valueOf(token).trim().toLowerCase();
+                String s = String.valueOf(token).trim();
                 if (s.equals(entry.getKey())) {
                     return new Token(s, entry.getValue(),lineNum);
                 }
