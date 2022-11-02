@@ -8,14 +8,28 @@ public class AstNode {
     private String type = "";
 
     private String quality="";
+    KeyValue key = new KeyValue();
 
-    private int regID = 0;
+    public KeyValue getKey() {
+        return key;
+    }
+
+    public void setKey(KeyValue key) {
+        this.key = key;
+    }
+
+    private String regID = "";
     private int area = 0;
 
     boolean inStack=true;
+    String returnType="";
 
-    public void setRegID(int regID) {
-        this.regID = regID;
+    public String getReturnType() {
+        return returnType;
+    }
+
+    public void setReturnType(String returnType) {
+        this.returnType = returnType;
     }
 
     public int getArea() {
@@ -54,6 +68,14 @@ public class AstNode {
         this.type = type;
     }
 
+    public String getRegID() {
+        return regID;
+    }
+
+    public void setRegID(String regID) {
+        this.regID = regID;
+    }
+
     public void addChild(AstNode astNode){
         astNode.setFather(this);
         childs.add(astNode);
@@ -70,12 +92,12 @@ public class AstNode {
         return fatherNode;
     }
 
-    public int getRegID() {
-        return regID;
-    }
-
     public boolean isInStack() {
         return inStack;
+    }
+
+    public void setArea(int area) {
+        this.area = area;
     }
 
     public void setInStack(boolean inStack) {

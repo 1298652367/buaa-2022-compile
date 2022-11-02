@@ -872,6 +872,7 @@ public class SynAndError {
     private void error(){
         System.out.println("error");
     }
+
     private void error(String type){
         errors.add(new Error(nowToken.lineNum,type));
         System.out.println(nowToken.lineNum+ " "+ type);
