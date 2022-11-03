@@ -42,17 +42,17 @@ public class llvmGenerator {
             case "<Stmt>": Stmt(astNode);break;
             case "<Number>": Number(astNode);break;
             case "<Exp>": ADD_Mul_Exp(astNode);break;
-            case "<Cond>":Cond(astNode);break;
+//            case "<Cond>":Cond(astNode);break;
             case "<LVal>":LVal(astNode);break;
             case "<FuncRParams>":FuncRParams(astNode);break;
             case "<PrimaryExp>":PrimaryExp(astNode);break;
             case "<UnaryExp>":UnaryExp(astNode);break;
             case "<MulExp>": ADD_Mul_Exp(astNode);break;
             case "<AddExp>":ADD_Mul_Exp(astNode);break;
-            case "<RelExp>": Rel_EqExp(astNode);break;
-            case "<EqExp>":Rel_EqExp(astNode);break;
-            case "<LAndExp>": LAndExp(astNode);break;
-            case "<LOrExp>":LOrExp(astNode);break;
+//            case "<RelExp>": Rel_EqExp(astNode);break;
+//            case "<EqExp>":Rel_EqExp(astNode);break;
+//            case "<LAndExp>": LAndExp(astNode);break;
+//            case "<LOrExp>":LOrExp(astNode);break;
             default: {
                 for (AstNode a : astNode.getChilds()) {
                     generate(a);
@@ -78,7 +78,7 @@ public class llvmGenerator {
             if(area==0){
                 ans+=("@"+Ident.getValue()+" = dso_local global i32 "+k.getIntVal()+"\n");
             }else{
-                ans+=("store i32 "+a.get(2).getValue()+", i32* "+Ident.getRegID()+"\n");
+                ans+=("store i32 "+a.get(2).getQuality()+", i32* "+Ident.getRegID()+"\n");
             }
         }
         if(area==0){
@@ -90,13 +90,41 @@ public class llvmGenerator {
     }
 
     private void ConstExp(AstNode astNode){
-        generate(astNode.getChilds().get(0));
-        astNode.setQuality(astNode.getChilds().get(0).getQuality());
+        ArrayList<AstNode> a = astNode.getChilds();
+        a.get(0).setInStack(astNode.isInStack());
+        generate(a.get(0));
+        String first = a.get(0).getQuality();
+        if(a.size()>1){
+            for(int i=1;i<a.size();i+=2){
+                String op = a.get(i).getValue();//运算符
+                a.get(i+1).setInStack(astNode.isInStack());
+                generate(a.get(i+1));
+                String second = a.get(i+1).getQuality();
+                String llvm_op = getOp(op);
+                if(area>0) {
+                    ans += "%v" + this.regId + " = " + llvm_op + " i32 " + first + ", " + second + "\n";
+                    a.get(i + 1).setRegID("%v"+ regId);
+                    a.get(i + 1).setQuality("%v" + regId);
+                    regId++;
+                }
+                else {
+                    a.get(i+1).setQuality(Calculate(first,op,second));
+                }
+                first = a.get(i+1).getQuality();
+            }
+            astNode.setQuality(a.get(a.size()-1).getQuality());
+        }else {
+            astNode.setQuality(first);
+        }
     }
 
     private void ConstInitVal(AstNode astNode){
-        generate(astNode.getChilds().get(0));
-        astNode.setQuality(astNode.getChilds().get(0).getQuality());
+        ArrayList<AstNode> a= astNode.getChilds();
+        if(a.size()==1){
+            generate(a.get(0));
+            astNode.getKey().setIntVal(a.get(0).getQuality());
+            astNode.setQuality(a.get(0).getQuality());
+        }
     }
 
     private void VarDef(AstNode astNode){
@@ -135,9 +163,12 @@ public class llvmGenerator {
     }
 
     private void InitVal(AstNode astNode){
-        generate(astNode.getChilds().get(0));
-        astNode.getKey().setIntVal(astNode.getChilds().get(0).getQuality());
-        astNode.setQuality(astNode.getChilds().get(0).getQuality());
+        ArrayList<AstNode> a= astNode.getChilds();
+        if(a.size()==1){
+            generate(a.get(0));
+            astNode.getKey().setIntVal(a.get(0).getQuality());
+            astNode.setQuality(a.get(0).getQuality());
+        }
     }
 
     private void MainFuncDef( AstNode astNode){
@@ -162,16 +193,22 @@ public class llvmGenerator {
         }else if(a.get(0).getValue().equals("printf")){
             int nowNum = 4; // printf,(,str,/,
             String key = a.get(2).getValue();
-            for(int i=0;i<key.length()-1;i++){
-                if(key.charAt(i)=='%' && key.charAt(i+1)=='d'){
+            for(int i=1;i<key.length()-1;i++){
+                if(key.charAt(i)=='%'&&key.charAt(i+1)=='d'){
+                    i++;
                     generate(a.get(nowNum));
+                    nowNum+=2;
+                }
+            }
+            nowNum=4;
+            for(int i=1;i<key.length()-1;i++){
+                if(key.charAt(i)=='%' && key.charAt(i+1)=='d'){
                     ans+=("call void @putint(i32 "+a.get(nowNum).getQuality()+")\n");
                     i++;
                     nowNum+=2;
                 }else if(key.charAt(i)=='\\' && key.charAt(i+1)=='n'){
                     ans+="call void @putch(i32 10)\n";
                     i++;
-                    nowNum+=2;//),;
                 }else{
                     ans+=("call void @putch(i32 "+(int) key.charAt(i)+")\n");
                 }
@@ -180,7 +217,7 @@ public class llvmGenerator {
             generate(a.get(0));
             if(a.get(2).getValue().equals("<Exp>")){
                 generate(a.get(2));//Exp
-                ans+=("store i32 "+a.get(2).getValue()+", i32* "+a.get(0).getRegID()+"\n");
+                ans+=("store i32 "+a.get(2).getQuality()+", i32* "+a.get(0).getRegID()+"\n");
             }
             else if(a.get(2).getValue().equals("getint")){
                 ans+=("%v"+this.regId+" = call i32 @getint()"+"\n");
@@ -188,10 +225,10 @@ public class llvmGenerator {
                 this.regId++;
             }
 
-        }else if(a.get(0).getValue().equals("if")){
-
-        }else if(a.get(0).getValue().equals("while")){
-
+//        }else if(a.get(0).getValue().equals("if")){
+//
+//        }else if(a.get(0).getValue().equals("while")){
+//
         }
     }
 
@@ -234,7 +271,7 @@ public class llvmGenerator {
                 String llvm_op = getOp(op);
                 if(area>0) {
                     ans += "%v" + this.regId + " = " + llvm_op + " i32 " + first + ", " + second + "\n";
-                    a.get(i + 1).setRegID("%v"+regId);
+                    a.get(i + 1).setRegID("%v"+ regId);
                     a.get(i + 1).setQuality("%v" + regId);
                     regId++;
                 }
@@ -289,7 +326,7 @@ public class llvmGenerator {
                 }
                 else{
                     generate(a.get(2));
-                    ans+=("%v"+this.regId+" = call "+ident.getReturnType()+" @"+ident.getValue()+"("+a.get(2).getValue()+")\n");
+                    ans+=("%v"+this.regId+" = call "+ident.getReturnType()+" @"+ident.getValue()+"("+a.get(2).getQuality()+")\n");
                     astNode.setQuality("%v"+this.regId);
                     this.regId++;
                 }
@@ -325,7 +362,7 @@ public class llvmGenerator {
         astNode.setQuality(astNode.getChilds().get(0).getValue());
     }
 
-    private void LVal(AstNode astNode){
+    private void LVal(@NotNull AstNode astNode){
         ArrayList<AstNode> a = astNode.getChilds();
         AstNode Ident = a.get(0);
         boolean is_inStack = false;
@@ -355,14 +392,14 @@ public class llvmGenerator {
         }
     }
 
-    private void Cond(AstNode astNode){
-    }
-    private void Rel_EqExp(AstNode astNode){
-    }
-    private void LOrExp(AstNode astNode){
-    }
-    private void LAndExp(AstNode astNode){
-    }
+//    private void Cond(AstNode astNode){
+//    }
+//    private void Rel_EqExp(AstNode astNode){
+//    }
+//    private void LOrExp(AstNode astNode){
+//    }
+//    private void LAndExp(AstNode astNode){
+//    }
 
     private void FuncDef(AstNode astNode){
         ArrayList<AstNode> a=astNode.getChilds();
@@ -411,6 +448,7 @@ public class llvmGenerator {
             stack.add(Ident);
         }
     }
+
     private void FuncRParams(AstNode astNode){
         ArrayList<AstNode> a=astNode.getChilds();
         generate(a.get(0));
@@ -426,23 +464,23 @@ public class llvmGenerator {
     }
 
     private String getOp(String s){
+        String str="";
         switch (s){
-            case "+": return "add";
-            case "-": return"sub";
-            case "*": return"mul";
-            case "/": return"sdiv";
-            case "%": return"srem";
-            case "==":return"eq";
-            case "!=":return"ne";
-            case ">": return"sgt";
-            case ">=":return"sge";
-            case "<":return"slg";
-            case "<=":return"sle";
-            case "&&": return"and";
-            case "||": return"or";
-            default:
-                throw new IllegalStateException("Unexpected value: " + s);
+            case "+": str="add";break;
+            case "-": str="sub";break;
+            case "*": str="mul";break;
+            case "/": str="sdiv";break;
+            case "%": str="srem";break;
+            case "==":str="eq";break;
+            case "!=":str="ne";break;
+            case ">": str="sgt";break;
+            case ">=":str="sge";break;
+            case "<":str="slg";break;
+            case "<=":str="sle";break;
+            case "&&": str="and";break;
+            case "||": str="or";break;
         }
+        return str;
     }
 
     private String Calculate(String a,String op,String b){
@@ -450,17 +488,17 @@ public class llvmGenerator {
         int bb = Integer.parseInt(b);
         int c=0;
         switch (op){
-            case "+":c=aa+bb;
-            case "-":c=aa-bb;
-            case "*":c=aa*bb;
-            case "/":c=aa/bb;
-            case "%":c=aa%bb;
-            case "==":c=(aa==bb)?1:0;
-            case "!=":c=(aa!=bb)?1:0;
-            case ">":c=(aa>bb)?1:0;
-            case ">=":c=(aa>=bb)?1:0;
-            case "<":c=(aa<bb)?1:0;
-            case "<=":c=(aa<=bb)?1:0;
+            case "+":c=aa+bb;break;
+            case "-":c=aa-bb;break;
+            case "*":c=aa*bb;break;
+            case "/":c=aa/bb;break;
+            case "%":c=aa%bb;break;
+            case "==":c=(aa==bb)?1:0;break;
+            case "!=":c=(aa!=bb)?1:0;break;
+            case ">":c=(aa>bb)?1:0;break;
+            case ">=":c=(aa>=bb)?1:0;break;
+            case "<":c=(aa<bb)?1:0;break;
+            case "<=":c=(aa<=bb)?1:0;break;
         }
         return String.valueOf(c);
     }

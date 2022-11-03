@@ -31,12 +31,9 @@ public class Compiler {
 //        SynAndError sae = new SynAndError(lp.getTokens());
 //        lp.print(writer); //词法分析输出
 //        sae.printError(writerError); //错误处理输出
-
         ga.print(writer); // 语法分析输出
 
         llvmGenerator Generator = new llvmGenerator(ga.getRootAst());
         Generator.print(writerLLvm);
-
-
     }
 }

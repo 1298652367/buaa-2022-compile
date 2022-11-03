@@ -83,7 +83,6 @@ public class LexParser {
             }
             // 在map中查找，如果能查找到说明是保留字
             // 否则说明是标识符
-            // 每次返回都要维护下index1
             this.setBegin(index1);
             //是保留字
             for(Map.Entry<String,String> entry: keywords.keyWord.entrySet()) {
