@@ -1,7 +1,6 @@
 package llym_ir;
 
 import data.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -246,11 +245,11 @@ public class llvmGenerator {
                         }
                     }
                 }
-            }else if(astNode.getValue().equals("}")){
+            }else if(astNode1.getValue().equals("}")){
                 for(int i=stack.size()-1;i>=0;i--){
                     if(stack.get(i).getArea()==area) stack.remove(i);
-                    area--;
                 }
+                area--;
             }else{
                 generate(astNode1);
             }
@@ -362,7 +361,7 @@ public class llvmGenerator {
         astNode.setQuality(astNode.getChilds().get(0).getValue());
     }
 
-    private void LVal(@NotNull AstNode astNode){
+    private void LVal( AstNode astNode){
         ArrayList<AstNode> a = astNode.getChilds();
         AstNode Ident = a.get(0);
         boolean is_inStack = false;

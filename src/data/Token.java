@@ -110,6 +110,7 @@ public class Token {
     public int getLineNum() {
         return this.lineNum;
     }
+
     public int getFormatNum(){
         int n=0;
         for(int i=0;i<value.length();i++){
@@ -121,6 +122,7 @@ public class Token {
         }
         return n;
     }
+
     public boolean isFormatIllegal(){
         for(int i=1;i<value.length()-1;i++){
             char c = value.charAt(i);
