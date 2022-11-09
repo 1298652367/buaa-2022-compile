@@ -1,6 +1,12 @@
-package llym_ir;
+package llvm_ir;
 
 import data.*;
+
+import llvm_ir.Values.*;
+import llvm_ir.Values.Constant.ConstantInt;
+import llvm_ir.Values.Module;
+import llvm_ir.types.IntegerType;
+import llvm_ir.types.Type;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,8 +23,40 @@ public class llvmGenerator {
     ArrayList <AstNode> stack = new ArrayList<>(); //栈式符号表
     HashMap <String,AstNode> global= new HashMap(); //全局符号表
 
+    //------------------------------------------------------------------------------------------
+    private Symbols symbolTable;
+    private Module module = new Module();
+    private BasicBlock curBlock;
+    private Function curFunction;
+    private Value tmpValue;
+    private int tmpInt;//所有对tmpInt的修改均在子级visit方法中进行
+    private ArrayList<Type> tmpFuncParams = new ArrayList<>();
+    private ConstantInt c = new ConstantInt(IntegerType.i32, 0, 0);
+    private FactoryBuilder factoryBuilder;
+    private int regNum = 1;
+    private int strNum = 1;
+    private boolean isConst = false;//用来标价要计算的表达式是否为常值
+    private boolean isGlobal = false;//如果初始化在全局， 那么所有值均为常数，可以直接赋值
+    //再次赋值只有在语句Stmt里才有
+    private boolean preEnter = false;
+    //--------------------------------------------------------------------------------------------
+
+    public String getRegNum() {
+        regNum++;
+        return "%v" + regNum;
+    }
+
+    public String getStrNum() {
+        strNum++;
+        return "@_str_" + strNum;
+    }
+
+
     public llvmGenerator(AstNode root) {
         this.root = root;
+        symbolTable = new Symbols();
+        factoryBuilder = new FactoryBuilder();
+
         this.ans="declare i32 @getint()"+"\n" +
                 "declare void @putint(i32)"+"\n"+
                 "declare void @putch(i32)"+"\n"+
@@ -28,6 +66,7 @@ public class llvmGenerator {
 
     private void generate(AstNode astNode) {
         switch (astNode.getValue()) {
+           case "<CompUnit>":CompUnit(astNode);break;
             case "<ConstDef>": ConstDef(astNode);break;
             case "<ConstInitVal>": ConstInitVal(astNode);break;
             case "<ConstExp>":ConstExp(astNode);break;
@@ -41,17 +80,17 @@ public class llvmGenerator {
             case "<Stmt>": Stmt(astNode);break;
             case "<Number>": Number(astNode);break;
             case "<Exp>": ADD_Mul_Exp(astNode);break;
-//            case "<Cond>":Cond(astNode);break;
+            case "<Cond>":Cond(astNode);break;
             case "<LVal>":LVal(astNode);break;
             case "<FuncRParams>":FuncRParams(astNode);break;
             case "<PrimaryExp>":PrimaryExp(astNode);break;
             case "<UnaryExp>":UnaryExp(astNode);break;
             case "<MulExp>": ADD_Mul_Exp(astNode);break;
             case "<AddExp>":ADD_Mul_Exp(astNode);break;
-//            case "<RelExp>": Rel_EqExp(astNode);break;
-//            case "<EqExp>":Rel_EqExp(astNode);break;
-//            case "<LAndExp>": LAndExp(astNode);break;
-//            case "<LOrExp>":LOrExp(astNode);break;
+            case "<RelExp>": Rel_EqExp(astNode);break;
+            case "<EqExp>":Rel_EqExp(astNode);break;
+            case "<LAndExp>": LAndExp(astNode);break;
+            case "<LOrExp>":LOrExp(astNode);break;
             default: {
                 for (AstNode a : astNode.getChilds()) {
                     generate(a);
@@ -60,15 +99,26 @@ public class llvmGenerator {
         }
     }
 
+    private void CompUnit(AstNode astNode){
+        symbolTable.addLayer();
+        for(int i=0;i<astNode.getChilds().size()-1;i++){
+            generate(astNode.getChilds().get(i));
+        }
+    }
+
     private void ConstDef(AstNode astNode){
         ArrayList<AstNode> a=astNode.getChilds();
         AstNode Ident = a.get(0);
         KeyValue k = Ident.getKey();
+
+        String name = Ident.getValue();
+        symbolTable.put(name,factoryBuilder.constantVar(name,tmpInt));
         if(area>0){
             ans+=("%v"+this.regId+" = alloca i32\n");
             Ident.setQuality("%v"+this.regId);
             Ident.setRegID("%v"+this.regId);
             regId++;
+
         }
         if(a.size()==3){ // 常数
             k.setDim(0);
@@ -78,6 +128,7 @@ public class llvmGenerator {
                 ans+=("@"+Ident.getValue()+" = dso_local global i32 "+k.getIntVal()+"\n");
             }else{
                 ans+=("store i32 "+a.get(2).getQuality()+", i32* "+Ident.getRegID()+"\n");
+                //new instruction(
             }
         }
         if(area==0){
@@ -270,10 +321,13 @@ public class llvmGenerator {
                 String llvm_op = getOp(op);
                 if(area>0) {
                     ans += "%v" + this.regId + " = " + llvm_op + " i32 " + first + ", " + second + "\n";
+
+                    //
                     a.get(i + 1).setRegID("%v"+ regId);
                     a.get(i + 1).setQuality("%v" + regId);
                     regId++;
                 }
+
                 else {
                     a.get(i+1).setQuality(Calculate(first,op,second));
                 }
@@ -303,7 +357,7 @@ public class llvmGenerator {
             }else if(a.get(0).getChilds().get(0).getValue().equals("!")){
                 ans+="%v"+this.regId+" = icmp eq i32 0, "+a.get(1).getQuality()+"\n";
                 regId++;
-                ans+="%v"+this.regId+" = sext i1 %v"+(this.regId-1)+" to i32\n";
+                ans+="%v"+this.regId+" = zext i1 %v"+(this.regId-1)+" to i32\n";
                 astNode.setRegID("%v"+this.regId);
                 astNode.setQuality("%v"+this.regId);
                 regId++;
@@ -391,14 +445,14 @@ public class llvmGenerator {
         }
     }
 
-//    private void Cond(AstNode astNode){
-//    }
-//    private void Rel_EqExp(AstNode astNode){
-//    }
-//    private void LOrExp(AstNode astNode){
-//    }
-//    private void LAndExp(AstNode astNode){
-//    }
+    private void Cond(AstNode astNode){
+    }
+    private void Rel_EqExp(AstNode astNode){
+    }
+    private void LOrExp(AstNode astNode){
+    }
+    private void LAndExp(AstNode astNode){
+    }
 
     private void FuncDef(AstNode astNode){
         ArrayList<AstNode> a=astNode.getChilds();

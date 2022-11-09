@@ -1,6 +1,7 @@
 package error;
 import java.util.HashMap;
 import data.*;
+
 public class Symbols {
     private HashMap<String, Symbol> symbolHashMap;
 
@@ -27,4 +28,6 @@ public class Symbols {
         return symbolHashMap.toString();
     }
 
+    public void addLayer() {
+    }
 }

@@ -1,3 +1,19 @@
-int main(){
-    return 1 +-+ (- - - - - - - - -1);
+const int x=1;
+int func() {
+return 0;
+}
+int func2(int a,int b,int c) {
+  return a * b + c;
+}
+void printTotal(int a,int b,int c) {
+  printf("%d\n",(a+b+c)*a);
+}
+int main() {
+  const int N = 666;
+  printf("20373057\n");
+  printf("%d\n",func());
+  printf("%d\n",func2(+1,+2,+3));
+  printTotal(+5,-2,-1);
+  printf("%d",N);
+  return 0;
 }

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import data.*;
 import lexical.*;
 import syntax.*;
-import llym_ir.*;
+import llvm_ir.*;
 
 public class Compiler {
     public static void main(String[] args) throws IOException {
