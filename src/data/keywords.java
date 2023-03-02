@@ -46,5 +46,15 @@ public class keywords {
         keyWord.put("]","RBRACK");
         keyWord.put("{","LBRACE");
         keyWord.put("}","RBRACE");
+        keyWord.put("true","BOOL");
+        keyWord.put("false","BOOL");
+        keyWord.put("max","MAXTK");
     }
+    public String getType(String ident){
+        return keyWord.get(ident);
+    }
+    public boolean isKey(String str) {
+        return keyWord.containsKey(str);
+    }
+
 }

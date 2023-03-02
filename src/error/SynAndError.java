@@ -6,10 +6,16 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import CodeGeneration.CodeType;
+import CodeGeneration.LabelGenerator;
+import CodeGeneration.PCode;
 import data.*;
 import lexical.*;
 import syntax.*;
-public class SynAndError {
+public class
+
+
+SynAndError {
     private ArrayList<Token> tokens;
     private int index = 0;
     private Token nowToken;
@@ -21,6 +27,13 @@ public class SynAndError {
     private boolean needReturn = false;
     private int whileFlag = 0;
     private int area = -1;     //错误处理符号表结构
+
+    private ArrayList<PCode> codes = new ArrayList<>();
+    private LabelGenerator labelGenerator = new LabelGenerator();
+    private ArrayList<HashMap<String, String>> ifLabels = new ArrayList<>();
+    private ArrayList<HashMap<String, String>> whileLabels = new ArrayList<>();
+    private ArrayList<HashMap<Integer, String>> condLabels = new ArrayList<>();
+    private int areaID = -1;
 
     public SynAndError(ArrayList<Token> tokens) {
         this.tokens = tokens;
@@ -54,6 +67,7 @@ public class SynAndError {
 
     // 进入新的符号表
     private void addArea() {
+        areaID++;
         area++;
         symbols.put(area, new Symbols());
     }
@@ -76,8 +90,8 @@ public class SynAndError {
         return symbols.get(area).hasSymbol(token);
     }
 
-    private void addSymbol(Token token, String type, int intType) {
-        symbols.get(area).addSymbol(type, intType, token);
+    private void addSymbol(Token token, String type, int intType,int areaID) {
+        symbols.get(area).addSymbol(type, intType, token, areaID);
     }
     private Symbol getSymbol(Token token) {
         Symbol symbol = null;
@@ -167,6 +181,8 @@ public class SynAndError {
         Token ident = nowToken;
         if(hasSymbolInThisArea(nowToken))
             error("b");
+        codes.add(new PCode(CodeType.VAR,areaID+"_"+nowToken.getValue()));
+
         Token token = getNextToken();
         int intType = 0;
         while(token.valueEquals("[")){
@@ -176,7 +192,12 @@ public class SynAndError {
             checkBrack();
             token = getNextToken();
         }
-        addSymbol(ident,"const",intType);
+
+        if(intType > 0 ){
+            codes.add(new PCode(CodeType.DIMVAR,areaID+"_"+ident.getValue(),intType));
+        }
+        addSymbol(ident,"const",intType,areaID);
+
         getToken(); // =
         ConstInitVal();
         grammar.add("<ConstDef>");
@@ -207,6 +228,9 @@ public class SynAndError {
         getToken();//Ident
         Token ident = nowToken;
         if(hasSymbolInThisArea(nowToken)) error("b");
+
+        codes.add(new PCode(CodeType.VAR,areaID+"_"+nowToken.getValue()));
+
         int intType = 0;
         Token token = getNextToken();
         while(token.valueEquals("[")){
@@ -216,11 +240,26 @@ public class SynAndError {
             checkBrack();
             token = getNextToken();
         }
+
+        if(intType > 0){
+            codes.add(new PCode(CodeType.DIMVAR,areaID+"_"+ident.getValue(),intType));
+        }
+        addSymbol(ident,"var",intType,areaID);
+
         if(token.valueEquals("=")) {
             getToken(); // =
-            InitVal();
+            if(getNextToken().valueEquals("getint")){
+                getToken();// getint
+                getToken();// (
+                checkParent();// )
+                checkSemicn();// ;
+                codes.add(new PCode(CodeType.GETINT));
+            }
+            else InitVal();
+        }else{
+            codes.add(new PCode(CodeType.PLACEHOLDER,areaID+"_"+ident.getValue(),intType));
         }
-        addSymbol(ident,"var",intType);
+
         grammar.add("<VarDef>");
     }
     // 分析变量初值
@@ -237,7 +276,6 @@ public class SynAndError {
                     InitVal();
                     token1 = getNextToken();
                 }
-                token1 = getNextToken();
             }
             getToken();// }
         }else {
@@ -247,6 +285,7 @@ public class SynAndError {
     }
     // 分析函数定义  --b,g,j
     private void FuncDef(){
+        int startIndex = index;
         Function function = null;
         ArrayList<Integer> paras = new ArrayList<>();
         String returnType = FuncType();
@@ -254,6 +293,8 @@ public class SynAndError {
         if(functions.containsKey((nowToken.getValue()))){
             error("b");
         }
+        PCode code = new PCode(CodeType.FUNC,nowToken.getValue());
+        codes.add(code);
         function = new Function(nowToken,returnType);
 
         addArea();
@@ -272,6 +313,10 @@ public class SynAndError {
             error("g");
 
         removeArea();
+        code.setValue2(paras.size());
+        codes.add(new PCode(CodeType.RET,0));
+        codes.add(new PCode(CodeType.ENDFUNC));
+
         grammar.add("<FuncDef>");
 
     }
@@ -285,11 +330,14 @@ public class SynAndError {
             function.setParas(new ArrayList<>());
             functions.put("main", function);
         }
+        codes.add(new PCode(CodeType.MAIN,nowToken.getValue()));
+
         getToken();// (
         checkParent();// )
         needReturn = true;
         boolean isReturn = Block(false);
         if(needReturn && !isReturn) error("g");
+        codes.add(new PCode(CodeType.EXIT));
         grammar.add("<MainFuncDef>");
     }
     // 分析函数类型
@@ -320,28 +368,12 @@ public class SynAndError {
                 token = getNextToken();
             }
         }
-        addSymbol(ident,"para",paraType);
+        codes.add(new PCode(CodeType.PARA,areaID+"_"+ident.getValue(),paraType));
+        addSymbol(ident,"para",paraType,areaID);
         grammar.add("<FuncFParam>");
         return paraType;
     }
     // 分析函数形参表
-    private void FuncRParams(Token ident,ArrayList<Token> exp,ArrayList<Integer> paras){
-        ArrayList<Integer> rparas = new ArrayList<>();
-        Exps exps = divide(exp,new ArrayList<>(Arrays.asList("COMMA")));
-        int i=0;
-        for(ArrayList<Token> exp1: exps.getTokens()){
-            int intType = Exp(exp1);
-            rparas.add(intType);
-            if(i<exps.getSymbols().size()){
-                grammar.add(exps.getSymbols().get(i++).toString());
-            }
-        }
-        if(paras!=null){
-            if_match(ident,paras,rparas);
-        }
-        grammar.add("<FuncFParams>");
-    }
-
     private ArrayList<Integer> FuncFParams(){
         ArrayList<Integer> paras = new ArrayList<>();
         int paraType = FuncFParam();
@@ -356,7 +388,6 @@ public class SynAndError {
         grammar.add("<FuncFParams>");
         return paras;
     }
-
     // 分析语句块
     private boolean Block(boolean isFunc){
         getToken();// {
@@ -396,20 +427,29 @@ public class SynAndError {
         if(token.typeEquals("IDENFR")){     // h,i,j
             ArrayList<Token> exp = getExp();
             if(getNextToken().valueEquals("=")){
-                LVal(exp);
+                Token ident = exp.get(0);
+                int intType = LVal(exp);
+
+                codes.add(new PCode(CodeType.ADDRESS,getSymbol(ident).getAreaID()+"_"+ident.getValue(),intType));
+
                 if(isConst(token))
                     error("h",token.getLineNum());
                 getToken();// =
+
                 if(getNextToken().valueEquals("getint")){
                     getToken();// getint
                     getToken();// (
                     checkParent();// )
                     checkSemicn();// ;
+                    codes.add(new PCode(CodeType.GETINT));
                 }else{
                     Exp(getExp());
                     checkSemicn();// ;
                 }
-            }else {
+                codes.add(new PCode(CodeType.POP,getSymbol(ident).getAreaID()+"_"+ident.getValue()));
+
+            }
+            else {
                 Exp(exp);
                 checkSemicn();// ;
             }
@@ -422,49 +462,85 @@ public class SynAndError {
             Block(false);
         }
         else if(token.valueEquals("if")){ // j
+            ifLabels.add(new HashMap<>());
+            ifLabels.get(ifLabels.size()-1).put("if",labelGenerator.getLabel("if"));
+            ifLabels.get(ifLabels.size()-1).put("else",labelGenerator.getLabel("else"));
+            ifLabels.get(ifLabels.size()-1).put("if_end",labelGenerator.getLabel("if_end"));
+            ifLabels.get(ifLabels.size()-1).put("if_block",labelGenerator.getLabel("if_block"));
+            codes.add(new PCode(CodeType.LABEL,ifLabels.get(ifLabels.size()-1).get("if")));
+
             getToken();// if
             getToken();// (
-            Cond();
+            Cond("IFTK");
             checkParent();// )
+
+            codes.add(new PCode(CodeType.JZ,ifLabels.get(ifLabels.size()-1).get("else")));
+            codes.add(new PCode(CodeType.LABEL,ifLabels.get(ifLabels.size()-1).get("if_block")));
+
             Stmt();
             token = getNextToken();
+            codes.add(new PCode(CodeType.JMP,ifLabels.get(ifLabels.size()-1).get("if_end")));
+            codes.add(new PCode(CodeType.LABEL,ifLabels.get(ifLabels.size()-1).get("else")));
+
             if(token.valueEquals("else")){
                 getToken();// else
                 Stmt();
             }
+            codes.add(new PCode(CodeType.LABEL,ifLabels.get(ifLabels.size()-1).get("if_end")));
+            ifLabels.remove(ifLabels.size()-1);
         }
         else if(token.valueEquals("while")){ // j
+            whileLabels.add(new HashMap<>());
+            whileLabels.get(whileLabels.size()-1).put("while",labelGenerator.getLabel("while"));
+            whileLabels.get(whileLabels.size()-1).put("while_end",labelGenerator.getLabel("while_end"));
+            whileLabels.get(whileLabels.size()-1).put("while_block",labelGenerator.getLabel("while_block"));
+            codes.add(new PCode(CodeType.LABEL,whileLabels.get(whileLabels.size()-1).get("while")));
+
             getToken();// while
             whileFlag++;
             getToken();// (
-            Cond();
+            Cond("WHILETK");
             checkParent();// )
+
+            codes.add(new PCode(CodeType.JZ,whileLabels.get(whileLabels.size()-1).get("while_end")));
+            codes.add(new PCode(CodeType.LABEL,whileLabels.get(whileLabels.size()-1).get("while_block")));
+
             Stmt();
             whileFlag--;
+            codes.add(new PCode(CodeType.JMP,whileLabels.get(whileLabels.size()-1).get("while")));
+            codes.add(new PCode(CodeType.LABEL,whileLabels.get(whileLabels.size()-1).get("while_end")));
+            whileLabels.remove(whileLabels.size()-1);
+
         }
         else if(token.valueEquals("break")){ //i,m
             getToken();// break
+            codes.add(new PCode(CodeType.JMP,whileLabels.get(whileLabels.size()-1).get("while_end")));
+
             if(whileFlag == 0)
                 error("m");
             checkSemicn();// ;
         }
         else if(token.valueEquals("continue")){ //i,m
             getToken();// continue
+            codes.add(new PCode(CodeType.JMP,whileLabels.get(whileLabels.size()-1).get("while")));
+
             if(whileFlag == 0)
                 error("m");
             checkSemicn();// ;
         }
         else if(token.valueEquals("return")){ //f,i
+            boolean flag=false;
             getToken();// return
             isReturn = true;
-            token = getNextToken();
-           if(token.typeSymbolizeBeginOfExp()){
+           if(getNextToken().typeSymbolizeBeginOfExp()){
                if(!needReturn){
                    error("f");
                }
                Exp(getExp());
+               flag = true;
            }
-           checkSemicn();//;
+           checkSemicn();
+           codes.add(new PCode(CodeType.RET,flag ? 1 : 0));
         }
         else if(token.valueEquals("printf")){ //i,j,l
             getToken();// printf
@@ -473,6 +549,7 @@ public class SynAndError {
             getToken();// String
             Token str = nowToken;//string
             token = getNextToken();
+
             int para = 0;
             while(token.valueEquals(",")){
                 getToken();//,
@@ -488,6 +565,7 @@ public class SynAndError {
             }
             checkParent();// )
             checkSemicn();// ;
+            codes.add(new PCode(CodeType.PRINT,str.getValue(),para));
         }
         else if(token.valueEquals(";")){
             getToken();//;
@@ -497,9 +575,19 @@ public class SynAndError {
     }
     // 分析数字
     private void Number(Token token){
+        codes.add(new PCode(CodeType.PUSH,Integer.parseInt(token.getValue())));
         grammar.add(token.toString());
         grammar.add("<Number>");
     }
+    // 分析bool
+    private void Bool(Token token){
+        if(token.valueEquals("true"))
+            codes.add(new PCode(CodeType.PUSH,1));
+        else codes.add(new PCode(CodeType.PUSH,0));
+        grammar.add(token.toString());
+        grammar.add("<Bool>");
+    }
+
     // 获取表达式
     private ArrayList<Token> getExp(){
         ArrayList<Token> exp = new ArrayList<>();
@@ -564,9 +652,9 @@ public class SynAndError {
             if(flag1<0 || flag2<0) break;
             getTokenWithoutAdd();
             exp.add(nowToken);
+            preToken=token;
             token = getNextToken();
         }
-        System.out.println(exp);
         return exp;
     }
     // 分隔表达式
@@ -592,6 +680,7 @@ public class SynAndError {
                 flag2--;
             }
             if(symbol.contains(token.type) && flag1==0 && flag2==0){
+                //UnaryOP
                 if(token.typeOfUnary()){
                     if(!unaryFlag){
                         exp1.add(token);
@@ -619,17 +708,20 @@ public class SynAndError {
         return intType;
     }
     // 分析条件表达式
-    private void Cond(){
-        LOrExp(getExp());
+    private void Cond(String from){
+        LOrExp(getExp(),from);
         grammar.add("<Cond>");
     }
     // 分析左值表达式  --c,k
     private int LVal(ArrayList<Token> exp){
         int intType = 0;
         Token ident = exp.get(0);
+
         if(!hasSymbol(ident)) {
             error("c",ident.getLineNum());
         }
+        codes.add(new PCode(CodeType.PUSH,getSymbol(ident).getAreaID()+"_"+ident.getValue()));
+
         grammar.add(ident.toString());//Ident
         if(exp.size()>1){
             ArrayList<Token> exp1 = new ArrayList<>();
@@ -637,7 +729,7 @@ public class SynAndError {
             for (int i = 1; i < exp.size(); i++) {
                 Token token = exp.get(i);
                 if (token.typeEquals("LBRACK")) {
-                    intType++;
+                    if(flag==0) intType++;
                     flag++;
                     if (flag == 1) {
                         grammar.add(token.toString());
@@ -663,8 +755,8 @@ public class SynAndError {
             }
         }
         grammar.add("<LVal>");
-        if(hasSymbol(exp.get(0))){
-            return getSymbol(exp.get(0)).getIntType()-intType;
+        if(hasSymbol(ident)){
+            return getSymbol(ident).getIntType()-intType;
         }else {
             return 0;
         }
@@ -679,14 +771,24 @@ public class SynAndError {
         int intType = 0;
         Token token = exp.get(0);
         if(token.valueEquals("(")){
-            grammar.add(token.toString()); // (
+            grammar.add(exp.get(0).toString()); // (
             Exp(new ArrayList<>(exp.subList(1, exp.size() - 1)));
             grammar.add(exp.get(exp.size()-1).toString());
+
         }else if(token.typeEquals("IDENFR")){
             intType = LVal(exp);
+            Token ident = exp.get(0);
+            if(intType==0){
+                codes.add(new PCode(CodeType.VALUE,getSymbol(ident).getAreaID()+"_"+ident.getValue(),intType));
+            }else{
+                codes.add(new PCode(CodeType.ADDRESS,getSymbol(ident).getAreaID()+"_"+ident.getValue(),intType));
+            }
         }else if(token.typeEquals("INTCON")){
             Number(exp.get(0));
-        }else{
+        }else if(token.typeEquals("BOOL")){
+            Bool(exp.get(0));
+        }
+        else{
             error();
         }
         grammar.add("<PrimaryExp>");
@@ -696,13 +798,44 @@ public class SynAndError {
     private int UnaryExp(ArrayList<Token> exp) {
         int intType = 0;
         Token token = exp.get(0);
-        if (token.typeEquals("PLUS") || token.typeEquals("MINU") || token.typeEquals("NOT")) {
+        if(token.typeEquals("MAXTK")){
+            grammar.add(exp.get(0).toString()); //max
+            grammar.add(exp.get(1).toString()); //(
+            int i=2;
+            ArrayList<Token> lval1 = new ArrayList<>();
+            ArrayList<Token> lval2 = new ArrayList<>();
+            while(!exp.get(i).valueEquals(",")){
+                lval1.add(exp.get(i));
+                i++;
+            }
+            LVal(lval1);
+            grammar.add(exp.get(i).toString());//,
+            while(!exp.get(i).valueEquals(")")){
+                lval2.add(exp.get(i));
+                i++;
+            }
+            LVal(lval2);
+            grammar.add(exp.get(i).toString());//,
+            codes.add(new PCode(CodeType.MAX));
+        }
+        else if (token.typeEquals("PLUS") || token.typeEquals("MINU") || token.typeEquals("NOT")) {
             //remove UnaryOp
             UnaryOp(exp.get(0));
             UnaryExp(new ArrayList<>(exp.subList(1, exp.size())));
+            CodeType type;
+            if(token.typeEquals("PLUS")){
+                type = CodeType.POS;
+            }else if(token.typeEquals("MINU")){
+                type = CodeType.NEG;
+            }else{
+                type = CodeType.NOT;
+            }
+            codes.add(new PCode(type));
         } else if (exp.size() == 1) {
+            //primary EXP
             intType=PrimaryExp(exp);
-        } else {
+        }
+        else {
             if (exp.get(0).typeEquals("IDENFR") && exp.get(1).typeEquals("LPARENT")) {
                 Token ident = exp.get(0);
                 ArrayList<Integer> paras = null;
@@ -728,7 +861,7 @@ public class SynAndError {
                     }
                 }
                 grammar.add(exp.get(exp.size() - 1).toString());
-
+                codes.add(new PCode(CodeType.CALL,ident.getValue()));
                 if(hasFunction(ident)){
                     if(getFunction(ident).getReturnType().equals("void")){
                         intType=-1;
@@ -747,14 +880,20 @@ public class SynAndError {
         grammar.add("<UnaryOp>");
     }
     // 分析函数实参表
-    private void FuncRParams(ArrayList<Token> exp) {
+    private void FuncRParams(Token ident,ArrayList<Token> exp,ArrayList<Integer> paras) {
         Exps exps = divide(exp, new ArrayList<>(Arrays.asList("COMMA")));
+        ArrayList<Integer> rparas = new ArrayList<>();
         int j = 0;
         for (ArrayList<Token> exp1 : exps.getTokens()) {
-            Exp(exp1);
+            int intType = Exp(exp1);
+            rparas.add(intType);
+            codes.add(new PCode(CodeType.RPARA,intType));
             if (j < exps.getSymbols().size()) {
                 grammar.add(exps.getSymbols().get(j++).toString());
             }
+        }
+        if(paras != null){
+            if_match(ident,paras,rparas);
         }
         grammar.add("<FuncRParams>");
     }
@@ -765,6 +904,17 @@ public class SynAndError {
         int i = 0;
         for(ArrayList<Token> exp1:exps.getTokens()){
             intType = UnaryExp(exp1);
+            if(i > 0){
+                CodeType type;
+                if(exps.getSymbols().get(i-1).typeEquals("MULT")){
+                    type=CodeType.MUL;
+                }else if(exps.getSymbols().get(i-1).typeEquals("DIV")){
+                    type=CodeType.DIV;
+                } else{
+                    type=CodeType.MOD;
+                }
+                codes.add(new PCode(type));
+            }
             grammar.add("<MulExp>");
             if(i < exps.getSymbols().size()){
                 grammar.add(exps.getSymbols().get(i++).toString());
@@ -779,6 +929,13 @@ public class SynAndError {
         int i = 0;
         for(ArrayList<Token> exp1:exps.getTokens()){
             intType = MulExp(exp1);
+            if(i > 0){
+                if(exps.getSymbols().get(i-1).typeEquals("PLUS")){
+                    codes.add(new PCode(CodeType.ADD));
+                }else{
+                    codes.add(new PCode(CodeType.SUB));
+                }
+            }
             grammar.add("<AddExp>");
             if(i < exps.getSymbols().size()){
                 grammar.add(exps.getSymbols().get(i++).toString());
@@ -792,6 +949,19 @@ public class SynAndError {
         int i = 0;
         for(ArrayList<Token> exp1:exps.getTokens()){
             AddExp(exp1);
+            if(i > 0){
+                CodeType type;
+                if(exps.getSymbols().get(i-1).typeEquals("LSS")){
+                    type=CodeType.CMPLT;
+                }else if(exps.getSymbols().get(i-1).typeEquals("LEQ")){
+                    type=CodeType.CMPLE;
+                }else if(exps.getSymbols().get(i-1).typeEquals("GRE")){
+                    type=CodeType.CMPGT;
+                }else{
+                    type=CodeType.CMPGE;
+                }
+                codes.add(new PCode(type));
+            }
             grammar.add("<RelExp>");
             if(i < exps.getSymbols().size()){
                 grammar.add(exps.getSymbols().get(i++).toString());
@@ -804,6 +974,15 @@ public class SynAndError {
         int i = 0;
         for(ArrayList<Token> exp1:exps.getTokens()){
             RelExp(exp1);
+            if(i > 0){
+                CodeType type;
+                if(exps.getSymbols().get(i-1).typeEquals("EQL")){
+                    type=CodeType.CMPEQ;
+                } else{
+                    type=CodeType.CMPNE;
+                }
+                codes.add(new PCode(type));
+            }
             grammar.add("<EqExp>");
             if(i < exps.getSymbols().size()){
                 grammar.add(exps.getSymbols().get(i++).toString());
@@ -811,37 +990,52 @@ public class SynAndError {
         }
     }
     // 分析逻辑与表达式
-    private void LAndExp(ArrayList<Token> exp){
+    private void LAndExp(ArrayList<Token> exp,String from,String label){
         Exps exps = divide(exp,new ArrayList<>(Arrays.asList("AND")));
-        int i = 0;
-        for(ArrayList<Token> exp1:exps.getTokens()){
+        int j = 0;
+        for(int i=0;i<exps.getTokens().size();i++){
+            ArrayList<Token> exp1 = exps.getTokens().get(i);
             EqExp(exp1);
+            if(j > 0){
+                codes.add(new PCode(CodeType.AND));
+            }
+            if(exps.getTokens().size() > 1 && i != exps.getTokens().size()-1){
+                if(from.equals("IFTK")){
+                    codes.add(new PCode(CodeType.JZ,label));
+                }else{
+                    codes.add(new PCode(CodeType.JZ,label));
+                }
+            }
             grammar.add("<LAndExp>");
-            if(i < exps.getSymbols().size()){
-                grammar.add(exps.getSymbols().get(i++).toString());
+            if(j < exps.getSymbols().size()){
+                grammar.add(exps.getSymbols().get(j++).toString());
             }
         }
     }
     // 分析逻辑或表达式
-    private void LOrExp(ArrayList<Token> exp){
+    private void LOrExp(ArrayList<Token> exp,String from){
         Exps exps = divide(exp,new ArrayList<>(Arrays.asList("OR")));
-        int i = 0;
-        for(ArrayList<Token> exp1:exps.getTokens()){
-            LAndExp(exp1);
+        int j = 0;
+        for(int i=0;i<exps.getTokens().size();i++){
+            ArrayList<Token> exp1 = exps.getTokens().get(i);
+            String label = labelGenerator.getLabel("cond_"+i);
+            LAndExp(exp1,from,label);
+            codes.add(new PCode(CodeType.LABEL,label));
+            if(j > 0){
+                codes.add(new PCode(CodeType.OR));
+            }
+            if(exps.getTokens().size() > 1 && i != exps.getTokens().size()-1){
+                if(from.equals("IFTK")){
+                    codes.add(new PCode(CodeType.JNZ,ifLabels.get(ifLabels.size()-1).get("if_block")));
+                }else{
+                    codes.add(new PCode(CodeType.JNZ,whileLabels.get(whileLabels.size()-1).get("while_block")));
+                }
+            }
             grammar.add("<LOrExp>");
-            if(i < exps.getSymbols().size()){
-                grammar.add(exps.getSymbols().get(i++).toString());
+            if(j < exps.getSymbols().size()){
+                grammar.add(exps.getSymbols().get(j++).toString());
             }
         }
-    }
-
-    // 输出语法分析结果
-    public void print(BufferedWriter writer) throws IOException {
-        for (String str : grammar) {
-            writer.write(str + "\n");
-        }
-        writer.flush();
-        writer.close();
     }
 
     // 检查右小括号————j
@@ -913,6 +1107,23 @@ public class SynAndError {
             }
         }
     }
+
+    // 输出语法分析结果
+    public void print(BufferedWriter writer) throws IOException {
+        for (String str : grammar) {
+            writer.write(str + "\n");
+        }
+        writer.flush();
+        writer.close();
+    }
+    public void printPCode() {
+        for (PCode code : codes) {
+            System.out.println(code);
+        }
+    }
+
+    public ArrayList<PCode> getCodes(){ return  codes;}
+
 
     // 输出错误处理结果
     public void printError(BufferedWriter writerError) throws IOException{

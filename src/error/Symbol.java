@@ -4,16 +4,17 @@ public class Symbol {
     private String type;
     private int intType;
     private String content;
-    private int area = 0;
+    private int areaID = 0;
 
-    public Symbol(String type, int intType, Token token) {
+    public Symbol(String type, int intType, Token token,int areaID) {
         this.type = type;
         this.intType = intType;
         this.content = token.value;
+        this.areaID=areaID;
     }
 
-    public int getArea() {
-        return area;
+    public int getAreaID() {
+        return areaID;
     }
 
     public int getIntType() {

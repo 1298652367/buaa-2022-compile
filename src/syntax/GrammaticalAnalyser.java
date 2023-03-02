@@ -730,7 +730,7 @@ public class GrammaticalAnalyser {
     // 语法树输出结果
     public void output(AstNode astNode,BufferedWriter writer)throws IOException{
         if(astNode.getType()==null){
-            writer.write(astNode.getValue()+"\n");
+            writer.write(astNode.getContent()+"\n");
         }else{
             String str = astNode.toString();
            writer.write(str+"\n");

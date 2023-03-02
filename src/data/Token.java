@@ -1,16 +1,26 @@
 package data;
 public class Token {
+    public String identfication;
     public String value; //单词的值
     public String type;//类别码
     public int lineNum;// 行数
     public int flag=1;
 
-    public Token(String value,String type){
-        this.value=value;
-        this.type=type;
+    public Token(String identfication, Integer lineNum){
+        this.identfication=identfication;
+        this.type=new keywords().getType(this.identfication);
+        this.value=this.identfication;
+        this.lineNum=lineNum;
     }
 
-    public Token(String value,String type,int lineNum){
+    public Token(char identification,int lineNum){
+        this.identfication=String.valueOf(identification);
+        this.type=new keywords().getType(this.identfication);
+        this.value=this.identfication;
+        this.lineNum=lineNum;
+    }
+
+    public Token(String type,String value,int lineNum){
         this.value=value;
         this.type=type;
         this.lineNum=lineNum;
@@ -20,10 +30,6 @@ public class Token {
         this.flag=a;
     }
 
-    public Token(String value, int lineNum) {
-        this.value = value;
-        this.lineNum = lineNum;
-    }
 
     @Override
     public String toString()  {

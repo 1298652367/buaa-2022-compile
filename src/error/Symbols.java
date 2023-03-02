@@ -9,8 +9,8 @@ public class Symbols {
         symbolHashMap = new HashMap<>();
     }
 
-    public void addSymbol(String type,int intType,Token token){
-        symbolHashMap.put(token.getValue(),new Symbol(type,intType,token));
+    public void addSymbol(String type,int intType,Token token,int areaID){
+        symbolHashMap.put(token.getValue(),new Symbol(type,intType,token,areaID));
     }
 
     public boolean hasSymbol(Token token){
